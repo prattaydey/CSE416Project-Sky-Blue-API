@@ -27,6 +27,8 @@ Requires header:
 
 `Authorization: Bearer <APP_CLIENT_KEY>`
 
+If a player ID is not in MongoDB, `GET /api/players/:playerId` returns `404`.
+
 ## Product boundary
 - This API is intentionally app-agnostic.
 - Any third-party client can consume it with a valid license key.
@@ -40,7 +42,7 @@ Missing auth (should be `401`):
 curl -i http://localhost:3000/api/players/123
 ```
 
-Authorized first request (should be `source: "external"`):
+Authorized request for existing player (should be `200`):
 
 ```bash
 curl -i \
@@ -48,10 +50,10 @@ curl -i \
   http://localhost:3000/api/players/123
 ```
 
-Second authorized request for same ID (should be `source: "cache"`):
+Authorized request for unknown player ID (should be `404`):
 
 ```bash
 curl -i \
   -H "Authorization: Bearer $APP_CLIENT_KEY" \
-  http://localhost:3000/api/players/123
+  http://localhost:3000/api/players/does-not-exist
 ```

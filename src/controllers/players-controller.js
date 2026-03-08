@@ -1,5 +1,4 @@
 const Player = require("../models/player.model");
-const { fetchMockExternalPlayer } = require("../services/mockExternalPlayer");
 
 function mapPlayerRow(player) {
   const primaryPosition = Array.isArray(player.position) ? player.position[0] : "";
@@ -19,7 +18,7 @@ function mapPlayerRow(player) {
   };
 }
 
-function mapPlayerDetails(player, source) {
+function mapPlayerDetails(player) {
   return {
     playerId: player.playerId,
     name: player.name,
@@ -28,7 +27,6 @@ function mapPlayerDetails(player, source) {
     position: player.position,
     stats: player.stats,
     fetchedAt: new Date(player.fetchedAt).toISOString(),
-    source,
   };
 }
 
@@ -49,12 +47,10 @@ async function getPlayerById(req, res, next) {
     const cachedPlayer = await Player.findOne({ playerId }).lean();
 
     if (cachedPlayer) {
-      return res.json(mapPlayerDetails(cachedPlayer, "cache"));
+      return res.json(mapPlayerDetails(cachedPlayer));
     }
 
-    const externalPlayer = await fetchMockExternalPlayer(playerId);
-    const createdPlayer = await Player.create(externalPlayer);
-    return res.json(mapPlayerDetails(createdPlayer.toObject(), "external"));
+    return res.status(404).json({ error: "Player not found" });
   } catch (error) {
     return next(error);
   }
