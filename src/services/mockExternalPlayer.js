@@ -1,5 +1,3 @@
-const { externalApiKey } = require("../config/env");
-
 function numberFromId(playerId) {
   // Convert a player ID into a stable numeric value for deterministic mock data.
   return playerId
@@ -8,10 +6,6 @@ function numberFromId(playerId) {
 }
 
 async function fetchMockExternalPlayer(playerId) {
-  if (!externalApiKey) {
-    throw new Error("Missing EXTERNAL_API_KEY");
-  }
-
   // Seed drives repeatable mock values so the same playerId always returns the same player.
   const seed = numberFromId(String(playerId));
   const firstNames = ["Alex", "Jordan", "Taylor", "Sam", "Chris"];

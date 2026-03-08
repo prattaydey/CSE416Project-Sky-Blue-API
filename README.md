@@ -8,7 +8,6 @@ Copy `.env.example` to `.env` and fill in:
 
 - `PORT` (optional, default `3000`)
 - `MONGODB_URI`
-- `EXTERNAL_API_KEY`
 - `APP_CLIENT_KEY`
 - `CORS_ORIGIN`
 

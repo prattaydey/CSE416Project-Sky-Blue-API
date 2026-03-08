@@ -8,7 +8,6 @@ const playerSchema = new mongoose.Schema(
     league: { type: String },
     position: [{ type: String, required: true }],
     isPitcher: { type: Boolean, default: false },
-    notes: { type: String, default: "" },
     stats: { type: mongoose.Schema.Types.Mixed, required: true },
     fetchedAt: { type: Date, required: true },
   },

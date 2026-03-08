@@ -26,7 +26,6 @@ function mapPlayerDetails(player, source) {
     team: player.team,
     league: player.league || "",
     position: player.position,
-    notes: player.notes || "",
     stats: player.stats,
     fetchedAt: new Date(player.fetchedAt).toISOString(),
     source,
@@ -61,33 +60,7 @@ async function getPlayerById(req, res, next) {
   }
 }
 
-async function updatePlayerNotes(req, res, next) {
-  try {
-    const { playerId } = req.params;
-    const { notes } = req.body || {};
-
-    if (typeof notes !== "string") {
-      return res.status(400).json({ error: "notes must be a string" });
-    }
-
-    const updatedPlayer = await Player.findOneAndUpdate(
-      { playerId },
-      { $set: { notes } },
-      { new: true }
-    ).lean();
-
-    if (!updatedPlayer) {
-      return res.status(404).json({ error: "Player not found" });
-    }
-
-    return res.json({ playerId, notes: updatedPlayer.notes || "" });
-  } catch (error) {
-    return next(error);
-  }
-}
-
 module.exports = {
   getPlayers,
   getPlayerById,
-  updatePlayerNotes,
 };
