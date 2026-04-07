@@ -1,4 +1,5 @@
 const Player = require("../models/player.model");
+const { calculatePlayerValues } = require("../services/valuationService");
 
 function mapPlayerRow(player) {
   const primaryPosition = Array.isArray(player.position) ? player.position[0] : "";
@@ -9,7 +10,9 @@ function mapPlayerRow(player) {
     name: player.name,
     position: primaryPosition,
     team: player.team,
+    mlbTeamId: player.mlbTeamId,
     league: player.league || "",
+    status: player.status || "active",
     avg: isPitcher ? player.stats?.ERA : player.stats?.BA,
     hr: isPitcher ? player.stats?.W : player.stats?.HR,
     rbi: isPitcher ? player.stats?.SV : player.stats?.RBI,
@@ -22,19 +25,33 @@ function mapPlayerDetails(player) {
   return {
     playerId: player.playerId,
     name: player.name,
+    mlbTeamId: player.mlbTeamId,
     team: player.team,
     league: player.league || "",
     position: player.position,
+    status: player.status || "active",
+    injuryStatus: player.injuryStatus || "",
     stats: player.stats,
     fetchedAt: new Date(player.fetchedAt).toISOString(),
   };
 }
 
-async function getPlayers(_req, res, next) {
+async function getPlayers(req, res, next) {
   try {
-    const players = await Player.find({ league: { $exists: true, $ne: "" } })
-      .sort({ name: 1 })
-      .lean();
+    const { league } = req.query;
+
+    const filter = {};
+    if (league && league !== "MLB") {
+      const upper = league.toUpperCase();
+      if (upper !== "AL" && upper !== "NL") {
+        return res.status(400).json({ error: "Invalid league filter. Use AL, NL, or MLB." });
+      }
+      filter.league = upper;
+    } else {
+      filter.league = { $in: ["AL", "NL"] };
+    }
+
+    const players = await Player.find(filter).sort({ name: 1 }).lean();
     return res.json(players.map(mapPlayerRow));
   } catch (error) {
     return next(error);
@@ -43,9 +60,14 @@ async function getPlayers(_req, res, next) {
 
 async function getPlayerById(req, res, next) {
   try {
-    const { playerId } = req.params;
-    const cachedPlayer = await Player.findOne({ playerId }).lean();
+    const rawId = req.params.playerId;
+    const playerId = Number(rawId);
 
+    if (Number.isNaN(playerId)) {
+      return res.status(400).json({ error: "playerId must be a number (MLB integer ID)" });
+    }
+
+    const cachedPlayer = await Player.findOne({ playerId }).lean();
     if (cachedPlayer) {
       return res.json(mapPlayerDetails(cachedPlayer));
     }
@@ -56,7 +78,92 @@ async function getPlayerById(req, res, next) {
   }
 }
 
+function validateValuationBody(body) {
+  const { leagueSettings, draftState } = body;
+  if (!leagueSettings || typeof leagueSettings.budget !== "number" || typeof leagueSettings.teams !== "number") {
+    return "leagueSettings.budget (number) and leagueSettings.teams (number) are required";
+  }
+  if (leagueSettings.budget <= 0 || leagueSettings.teams <= 0) {
+    return "leagueSettings.budget and leagueSettings.teams must be positive";
+  }
+  if (draftState && draftState.playersDrafted && !Array.isArray(draftState.playersDrafted)) {
+    return "draftState.playersDrafted must be an array";
+  }
+  return null;
+}
+
+async function valuateSinglePlayer(req, res, next) {
+  try {
+    const validationError = validateValuationBody(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const { leagueSettings, draftState, playerId } = req.body;
+    if (typeof playerId !== "number") {
+      return res.status(400).json({ error: "playerId (number) is required" });
+    }
+
+    const allPlayers = await Player.find({ league: { $in: ["AL", "NL"] } }).lean();
+    const values = calculatePlayerValues(allPlayers, leagueSettings, draftState || { playersDrafted: [] });
+
+    const playerValue = values.find((v) => v.playerId === playerId);
+    if (!playerValue) {
+      return res.status(404).json({ error: "Player not found or already drafted" });
+    }
+
+    return res.json(playerValue);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function valuateMultiplePlayers(req, res, next) {
+  try {
+    const validationError = validateValuationBody(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const { leagueSettings, draftState, playerIds } = req.body;
+    if (!Array.isArray(playerIds) || playerIds.length === 0) {
+      return res.status(400).json({ error: "playerIds (non-empty array of numbers) is required" });
+    }
+
+    const allPlayers = await Player.find({ league: { $in: ["AL", "NL"] } }).lean();
+    const values = calculatePlayerValues(allPlayers, leagueSettings, draftState || { playersDrafted: [] });
+
+    const requestedSet = new Set(playerIds);
+    const filtered = values.filter((v) => requestedSet.has(v.playerId));
+
+    return res.json({ values: filtered });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function valuateAllPlayers(req, res, next) {
+  try {
+    const validationError = validateValuationBody(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const { leagueSettings, draftState } = req.body;
+
+    const allPlayers = await Player.find({ league: { $in: ["AL", "NL"] } }).lean();
+    const values = calculatePlayerValues(allPlayers, leagueSettings, draftState || { playersDrafted: [] });
+
+    return res.json({ values });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   getPlayers,
   getPlayerById,
+  valuateSinglePlayer,
+  valuateMultiplePlayers,
+  valuateAllPlayers,
 };

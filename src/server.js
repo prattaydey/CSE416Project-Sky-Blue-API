@@ -4,8 +4,11 @@ const env = require("./config/env");
 const { connectMongo } = require("./db/mongo");
 const { requireAppClientKey } = require("./middleware/auth");
 const playersRoutes = require("./routes/players-routes");
+const playerRoutes = require("./routes/player-routes");
+const teamsRoutes = require("./routes/teams-routes");
 const userRoutes = require("./routes/user-routes");
 const { seedPlayersCatalog } = require("./services/seedPlayersCatalog");
+const { seedTeamsCatalog } = require("./services/seedTeamsCatalog");
 
 const app = express();
 const allowedOrigins = env.corsOrigin
@@ -24,6 +27,8 @@ app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/players", requireAppClientKey, playersRoutes);
+app.use("/api/player", requireAppClientKey, playerRoutes);
+app.use("/api/teams", requireAppClientKey, teamsRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -32,6 +37,7 @@ app.use((err, _req, res, _next) => {
 
 async function start() {
   await connectMongo(env.mongodbUri);
+  await seedTeamsCatalog();
   await seedPlayersCatalog();
   app.listen(env.port, () => {
     console.log(`DraftKit API listening on port ${env.port}`);
