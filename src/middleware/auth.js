@@ -2,6 +2,8 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const { appClientKey, jwtSecret } = require("../config/env");
 
+// Verfies that the request is coming from the global DraftKit App platform key (checks .env)
+// OR an individual user's API key (checks Mongo database)
 async function requireAppClientKey(req, res, next) {
   const authHeader = req.get("authorization") || "";
   const [scheme, token] = authHeader.split(" ");
