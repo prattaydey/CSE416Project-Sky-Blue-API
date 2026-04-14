@@ -79,15 +79,44 @@ async function getPlayerById(req, res, next) {
 }
 
 function validateValuationBody(body) {
+  if (!body || typeof body !== "object") {
+    return "Request body is required";
+  }
+
   const { leagueSettings, draftState } = body;
-  if (!leagueSettings || typeof leagueSettings.budget !== "number" || typeof leagueSettings.teams !== "number") {
+  if (
+    !leagueSettings ||
+    !Number.isFinite(leagueSettings.budget) ||
+    !Number.isFinite(leagueSettings.teams)
+  ) {
     return "leagueSettings.budget (number) and leagueSettings.teams (number) are required";
   }
   if (leagueSettings.budget <= 0 || leagueSettings.teams <= 0) {
     return "leagueSettings.budget and leagueSettings.teams must be positive";
   }
+  if (!Number.isInteger(leagueSettings.teams)) {
+    return "leagueSettings.teams must be an integer";
+  }
   if (draftState && draftState.playersDrafted && !Array.isArray(draftState.playersDrafted)) {
     return "draftState.playersDrafted must be an array";
+  }
+  if (Array.isArray(draftState?.playersDrafted)) {
+    for (const drafted of draftState.playersDrafted) {
+      if (
+        !drafted ||
+        typeof drafted !== "object" ||
+        !Number.isFinite(drafted.playerId) ||
+        !Number.isFinite(drafted.price)
+      ) {
+        return "Each drafted player must include numeric playerId and price";
+      }
+      if (!Number.isInteger(drafted.playerId)) {
+        return "Each drafted playerId must be an integer";
+      }
+      if (drafted.price < 0) {
+        return "Each drafted price must be non-negative";
+      }
+    }
   }
   return null;
 }
@@ -100,7 +129,7 @@ async function valuateSinglePlayer(req, res, next) {
     }
 
     const { leagueSettings, draftState, playerId } = req.body;
-    if (typeof playerId !== "number") {
+    if (!Number.isFinite(playerId) || !Number.isInteger(playerId)) {
       return res.status(400).json({ error: "playerId (number) is required" });
     }
 
@@ -128,6 +157,10 @@ async function valuateMultiplePlayers(req, res, next) {
     const { leagueSettings, draftState, playerIds } = req.body;
     if (!Array.isArray(playerIds) || playerIds.length === 0) {
       return res.status(400).json({ error: "playerIds (non-empty array of numbers) is required" });
+    }
+    const hasInvalidPlayerId = playerIds.some((id) => !Number.isFinite(id) || !Number.isInteger(id));
+    if (hasInvalidPlayerId) {
+      return res.status(400).json({ error: "playerIds must be an array of integer IDs" });
     }
 
     const allPlayers = await Player.find({ league: { $in: ["AL", "NL"] } }).lean();
@@ -166,4 +199,5 @@ module.exports = {
   valuateSinglePlayer,
   valuateMultiplePlayers,
   valuateAllPlayers,
+  validateValuationBody,
 };

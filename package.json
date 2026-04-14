@@ -5,7 +5,11 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:backend": "vitest run tests/backend",
+    "test:frontend": "vitest run tests/frontend"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +25,10 @@
     "mongoose": "^9.2.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "jsdom": "^26.1.0",
+    "nodemon": "^3.1.14",
+    "vitest": "^2.1.5"
   }
 }

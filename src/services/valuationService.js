@@ -50,6 +50,13 @@ function computeZScores(players, categories) {
 
 function scaleToBudget(scoredPlayers, remainingBudget) {
   if (scoredPlayers.length === 0) return [];
+  if (!Number.isFinite(remainingBudget) || remainingBudget <= 0) {
+    return scoredPlayers.map((p) => ({
+      playerId: p.playerId,
+      name: p.name,
+      value: 0,
+    }));
+  }
 
   const minZ = Math.min(...scoredPlayers.map((p) => p.zScore));
   const shifted = scoredPlayers.map((p) => ({
@@ -58,26 +65,42 @@ function scaleToBudget(scoredPlayers, remainingBudget) {
   }));
 
   const totalAdjusted = shifted.reduce((sum, p) => sum + p.adjusted, 0);
+  if (!Number.isFinite(totalAdjusted) || totalAdjusted <= 0) {
+    const evenValue = Math.round((remainingBudget / shifted.length) * 10) / 10;
+    return shifted.map((p) => ({
+      playerId: p.playerId,
+      name: p.name,
+      value: evenValue,
+    }));
+  }
 
-  const baseAllocation = MIN_BASE_VALUE * shifted.length;
+  // Preserve a $1 minimum only when the remaining budget can support it.
+  const baseValue = remainingBudget >= MIN_BASE_VALUE * shifted.length ? MIN_BASE_VALUE : 0;
+  const baseAllocation = baseValue * shifted.length;
   const distributableBudget = Math.max(remainingBudget - baseAllocation, 0);
 
   return shifted.map((p) => ({
     playerId: p.playerId,
     name: p.name,
-    value: Math.round((MIN_BASE_VALUE + (p.adjusted / totalAdjusted) * distributableBudget) * 10) / 10,
+    value: Math.round((baseValue + (p.adjusted / totalAdjusted) * distributableBudget) * 10) / 10,
   }));
 }
 
 function calculatePlayerValues(allPlayers, leagueSettings, draftState) {
   const { budget, teams } = leagueSettings;
-  const totalBudget = budget * teams;
+  const totalBudget = Math.max(budget * teams, 0);
 
-  const draftedPrices = (draftState?.playersDrafted || []);
-  const moneySpent = draftedPrices.reduce((sum, d) => sum + (d.price || 0), 0);
-  const remainingBudget = totalBudget - moneySpent;
+  const draftedPlayers = (draftState?.playersDrafted || [])
+    .map((d) => ({
+      playerId: Number(d.playerId),
+      price: Number(d.price),
+    }))
+    .filter((d) => Number.isFinite(d.playerId) && Number.isFinite(d.price) && d.price >= 0);
 
-  const draftedIds = new Set(draftedPrices.map((d) => d.playerId));
+  const moneySpent = draftedPlayers.reduce((sum, d) => sum + d.price, 0);
+  const remainingBudget = Math.max(totalBudget - moneySpent, 0);
+
+  const draftedIds = new Set(draftedPlayers.map((d) => d.playerId));
   const available = allPlayers.filter((p) => !draftedIds.has(p.playerId));
 
   const hitters = available.filter((p) => !p.isPitcher);
