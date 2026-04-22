@@ -10,8 +10,15 @@ describe("models: Player", () => {
       league: "NL",
       position: ["1B"],
       isPitcher: false,
+      age: 34,
+      depthRank: 1,
       status: "active",
       stats: { BA: 0.31, HR: 29, RBI: 102, SB: 13 },
+      statsHistory: [
+        { season: 2025, stats: { BA: 0.31, HR: 29, RBI: 102, SB: 13 } },
+        { season: 2024, stats: { BA: 0.3, HR: 28, RBI: 98, SB: 12 } },
+        { season: 2023, stats: { BA: 0.29, HR: 27, RBI: 95, SB: 11 } },
+      ],
       fetchedAt: new Date(),
     });
 

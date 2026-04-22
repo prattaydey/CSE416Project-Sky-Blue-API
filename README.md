@@ -64,6 +64,26 @@ curl -H "Authorization: Bearer $APP_CLIENT_KEY" http://localhost:3000/api/player
 
 All valuation endpoints accept `leagueSettings` and `draftState` in the request body.
 
+`leagueSettings` supports:
+
+- `budget` (number, required)
+- `teams` (integer, required)
+- `scoringSystem` (`roto` or `points`, optional, default `roto`)
+- `categories.hitters` / `categories.pitchers` (optional arrays for roto categories)
+- `pointsConfig.hitters` / `pointsConfig.pitchers` (optional points weights)
+- `budgetSplit` (optional `{ hitters, pitchers }`)
+- `rosterSpots` (optional `{ hitters, pitchers }`)
+- `minPlayerCost` (optional number)
+
+`draftState` supports:
+
+- `playersDrafted` (optional `[{ playerId, price }]`)
+- `teamStates` (optional per-team state):
+  - `teamId`
+  - `budgetRemaining`
+  - `rosterFilled: { hitters, pitchers }`
+  - `draftedPlayerIds`
+
 #### `POST /api/player/value`
 
 Single player valuation.
@@ -72,8 +92,25 @@ Single player valuation.
 curl -X POST -H "Authorization: Bearer $APP_CLIENT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "leagueSettings": { "budget": 260, "teams": 12 },
-    "draftState": { "playersDrafted": [] },
+    "leagueSettings": {
+      "budget": 260,
+      "teams": 12,
+      "scoringSystem": "roto",
+      "categories": {
+        "hitters": ["BA", "HR", "RBI", "SB"],
+        "pitchers": ["ERA", "W", "SV", "K"]
+      }
+    },
+    "draftState": {
+      "playersDrafted": [],
+      "teamStates": [
+        {
+          "teamId": "TeamA",
+          "budgetRemaining": 180,
+          "rosterFilled": { "hitters": 8, "pitchers": 5 }
+        }
+      ]
+    },
     "playerId": 605141
   }' \
   http://localhost:3000/api/player/value
@@ -149,7 +186,7 @@ MLB integer IDs are the single source of truth for both players and teams:
 | Data | Source | Update Frequency |
 |------|--------|------------------|
 | Player info | MLB Stats API | Static / on-demand |
-| Player stats | Lahman Database | Static (historical) |
+| Player stats | Lahman Database / seeded catalog | Historical (3-season capable) |
 | Injury status | MLB Transactions | Dynamic |
 | Team info | MLB Stats API / Lahman | Static |
 | Depth charts | FanGraphs | Dynamic |
