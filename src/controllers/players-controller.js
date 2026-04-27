@@ -6,13 +6,14 @@ const {
 } = require("../services/valuationService");
 
 function mapPlayerRow(player) {
-  const primaryPosition = Array.isArray(player.position) ? player.position[0] : "";
+  const positions = Array.isArray(player.position) ? player.position : player.position ? [player.position] : [];
+  const primaryPosition = positions[0] || "";
   const isPitcher = Boolean(player.isPitcher) || primaryPosition === "SP" || primaryPosition === "RP";
 
   return {
     id: player.playerId,
     name: player.name,
-    position: primaryPosition,
+    position: positions,
     team: player.team,
     mlbTeamId: player.mlbTeamId,
     league: player.league || "",
