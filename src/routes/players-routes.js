@@ -3,6 +3,7 @@ const {
   getPlayers,
   getPlayerById,
   createPlayer,
+  getPlayerValuation,
   valuateMultiplePlayers,
   valuateAllPlayers,
 } = require("../controllers/players-controller");
@@ -13,6 +14,7 @@ router.get("/", getPlayers);
 router.post("/", createPlayer);
 router.post("/value", valuateMultiplePlayers);
 router.post("/value/all", valuateAllPlayers);
+router.get("/:playerId/valuation", getPlayerValuation);
 router.get("/:playerId", getPlayerById);
 
 module.exports = router;
