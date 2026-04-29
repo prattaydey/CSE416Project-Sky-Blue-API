@@ -86,6 +86,102 @@ async function getPlayerById(req, res, next) {
   }
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return null;
+  const normalized = value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeOptionalNumber(value) {
+  if (value === undefined || value === null || value === "") return undefined;
+  const asNumber = Number(value);
+  return Number.isFinite(asNumber) ? asNumber : null;
+}
+
+async function createPlayer(req, res, next) {
+  try {
+    const {
+      playerId,
+      name,
+      team,
+      league,
+      position,
+      stats,
+      mlbTeamId,
+      isPitcher,
+      age,
+      depthRank,
+      status,
+      injuryStatus,
+      statsHistory,
+    } = req.body || {};
+
+    if (!Number.isInteger(playerId)) {
+      return res.status(400).json({ error: "playerId must be an integer" });
+    }
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "name is required" });
+    }
+    if (!team || typeof team !== "string" || !team.trim()) {
+      return res.status(400).json({ error: "team is required" });
+    }
+
+    const leagueValue = typeof league === "string" ? league.toUpperCase().trim() : "";
+    if (!["AL", "NL"].includes(leagueValue)) {
+      return res.status(400).json({ error: "league must be AL or NL" });
+    }
+
+    const normalizedPositions = normalizeStringArray(position);
+    if (!normalizedPositions) {
+      return res.status(400).json({ error: "position must be a non-empty array of strings" });
+    }
+
+    if (!stats || typeof stats !== "object" || Array.isArray(stats)) {
+      return res.status(400).json({ error: "stats is required and must be an object" });
+    }
+
+    if (statsHistory !== undefined && !Array.isArray(statsHistory)) {
+      return res.status(400).json({ error: "statsHistory must be an array when provided" });
+    }
+
+    const existing = await Player.findOne({ playerId }).lean();
+    if (existing) {
+      return res.status(409).json({ error: "playerId already exists" });
+    }
+
+    const parsedMlbTeamId = normalizeOptionalNumber(mlbTeamId);
+    const parsedAge = normalizeOptionalNumber(age);
+    const parsedDepthRank = normalizeOptionalNumber(depthRank);
+
+    if (parsedMlbTeamId === null || parsedAge === null || parsedDepthRank === null) {
+      return res.status(400).json({ error: "mlbTeamId, age, and depthRank must be valid numbers when provided" });
+    }
+
+    const created = await Player.create({
+      playerId,
+      name: name.trim(),
+      team: team.trim(),
+      league: leagueValue,
+      position: normalizedPositions,
+      stats,
+      mlbTeamId: parsedMlbTeamId,
+      isPitcher: Boolean(isPitcher),
+      age: parsedAge,
+      depthRank: parsedDepthRank,
+      status,
+      injuryStatus: typeof injuryStatus === "string" ? injuryStatus : undefined,
+      statsHistory: Array.isArray(statsHistory) ? statsHistory : [],
+      fetchedAt: new Date(),
+    });
+
+    return res.status(201).json(mapPlayerDetails(created));
+  } catch (error) {
+    return next(error);
+  }
+}
+
 function validateValuationBody(body) {
   if (!body || typeof body !== "object") {
     return "Request body is required";
@@ -342,6 +438,7 @@ async function valuateAllPlayers(req, res, next) {
 module.exports = {
   getPlayers,
   getPlayerById,
+  createPlayer,
   valuateSinglePlayer,
   valuateMultiplePlayers,
   valuateAllPlayers,

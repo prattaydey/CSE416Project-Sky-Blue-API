@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getPlayers,
   getPlayerById,
+  createPlayer,
   valuateMultiplePlayers,
   valuateAllPlayers,
 } = require("../controllers/players-controller");
@@ -9,6 +10,7 @@ const {
 const router = express.Router();
 
 router.get("/", getPlayers);
+router.post("/", createPlayer);
 router.post("/value", valuateMultiplePlayers);
 router.post("/value/all", valuateAllPlayers);
 router.get("/:playerId", getPlayerById);
