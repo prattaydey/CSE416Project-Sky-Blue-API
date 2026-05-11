@@ -76,12 +76,14 @@ async function start() {
   await seedTeamsCatalog();
   await seedPlayersCatalog();
 
+  app.listen(env.port, () => {
+    console.log(`DraftKit API listening on port ${env.port}`);
+  });
+
   if (env.syncMlbOnStartup) {
-    try {
-      await runCatalogSync("startup");
-    } catch (error) {
+    runCatalogSync("startup").catch((error) => {
       console.error("MLB sync failed, continuing with seeded catalog:", error.message);
-    }
+    });
   }
 
   if (env.syncMlbIntervalMinutes > 0) {
@@ -99,9 +101,6 @@ async function start() {
     console.log(`MLB sync scheduler enabled: every ${env.syncMlbIntervalMinutes} minute(s)`);
   }
 
-  app.listen(env.port, () => {
-    console.log(`DraftKit API listening on port ${env.port}`);
-  });
 }
 
 start().catch((error) => {

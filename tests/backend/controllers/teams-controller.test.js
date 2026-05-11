@@ -71,4 +71,28 @@ describe("controllers: teams", () => {
     expect(res.payload).toEqual({ error: "Team not found" });
     expect(next).not.toHaveBeenCalled();
   });
+
+  it("returns team details when updatedAt is missing or invalid", async () => {
+    mockFindOne({
+      mlbTeamId: 147,
+      name: "New York Yankees",
+      abbreviation: "NYY",
+      league: "AL",
+      division: "East",
+      city: "New York",
+      depthChart: {},
+      updatedAt: "not-a-date",
+    });
+
+    const req = createMockReq({ params: { teamId: "147" } });
+    const res = createMockRes();
+    const next = vi.fn();
+
+    await getTeamById(req, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload.mlbTeamId).toBe(147);
+    expect(typeof res.payload.updatedAt).toBe("string");
+    expect(next).not.toHaveBeenCalled();
+  });
 });

@@ -6,6 +6,14 @@ const {
 } = require("../services/valuationService");
 const mlbCatalogSyncService = require("../services/mlbCatalogSyncService");
 
+function safeIsoDate(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return new Date().toISOString();
+  }
+  return date.toISOString();
+}
+
 function mapPlayerRow(player) {
   const positions = Array.isArray(player.position)
     ? player.position.filter(Boolean)
@@ -45,7 +53,7 @@ function mapPlayerDetails(player) {
     depthRank: Number.isFinite(player.depthRank) ? player.depthRank : null,
     stats: player.stats,
     statsHistory: Array.isArray(player.statsHistory) ? player.statsHistory : [],
-    fetchedAt: new Date(player.fetchedAt).toISOString(),
+    fetchedAt: safeIsoDate(player.fetchedAt),
   };
 }
 

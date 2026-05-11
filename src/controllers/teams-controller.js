@@ -1,5 +1,13 @@
 const Team = require("../models/team.model");
 
+function safeIsoDate(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return new Date().toISOString();
+  }
+  return date.toISOString();
+}
+
 async function getTeams(req, res, next) {
   try {
     const { league } = req.query;
@@ -49,7 +57,7 @@ async function getTeamById(req, res, next) {
       division: team.division,
       city: team.city,
       depthChart: team.depthChart || {},
-      updatedAt: new Date(team.updatedAt).toISOString(),
+      updatedAt: safeIsoDate(team.updatedAt),
     });
   } catch (error) {
     return next(error);

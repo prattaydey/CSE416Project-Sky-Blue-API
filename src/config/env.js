@@ -15,7 +15,7 @@ module.exports = {
   mongodbUri: process.env.MONGODB_URI,
   appClientKey: process.env.APP_CLIENT_KEY,
   jwtSecret: process.env.JWT_SECRET,
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174",
   syncMlbOnStartup: String(process.env.SYNC_MLB_ON_STARTUP || "true").toLowerCase() === "true",
   syncMlbRosterType: process.env.SYNC_MLB_ROSTER_TYPE || "40Man",
   syncMlbSeasonsBack: Number(process.env.SYNC_MLB_SEASONS_BACK || 3),

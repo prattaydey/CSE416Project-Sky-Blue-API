@@ -83,6 +83,34 @@ describe("controllers: players", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it("returns player details when fetchedAt is missing or invalid", async () => {
+    mockFindOne({
+      playerId: 605141,
+      name: "Freddie Freeman",
+      mlbTeamId: 119,
+      team: "LAD",
+      league: "NL",
+      position: ["1B"],
+      status: "active",
+      injuryStatus: "",
+      age: 35,
+      depthRank: 1,
+      stats: { BA: 0.3, HR: 20, RBI: 80, SB: 4 },
+      statsHistory: [],
+      fetchedAt: "not-a-date",
+    });
+    const req = createMockReq({ params: { playerId: "605141" } });
+    const res = createMockRes();
+    const next = vi.fn();
+
+    await getPlayerById(req, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload.playerId).toBe(605141);
+    expect(typeof res.payload.fetchedAt).toBe("string");
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed valuation requests", async () => {
     const req = createMockReq({
       body: { leagueSettings: { budget: 260, teams: "12" }, playerId: 605141 },
