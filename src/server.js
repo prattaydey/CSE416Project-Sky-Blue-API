@@ -36,6 +36,41 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
+function buildSyncOptionsFromEnv() {
+  return {
+    rosterType: env.syncMlbRosterType,
+    seasonsBack: env.syncMlbSeasonsBack,
+    lookbackDays: env.syncMlbLookbackDays,
+    concurrency: env.syncMlbConcurrency,
+    replaceCatalog: env.syncMlbReplaceCatalog,
+    refreshExternalData: env.externalDataRefreshOnSync,
+    externalDataCacheDir: env.externalDataCacheDir,
+    lahmanBattingCsvPath: env.lahmanBattingCsvPath,
+    lahmanPitchingCsvPath: env.lahmanPitchingCsvPath,
+    lahmanPeopleCsvPath: env.lahmanPeopleCsvPath,
+    chadwickRegisterCsvPath: env.chadwickRegisterCsvPath,
+    fangraphsDepthCsvPath: env.fangraphsDepthCsvPath,
+    lahmanBattingCsvUrl: env.lahmanBattingCsvUrl,
+    lahmanPitchingCsvUrl: env.lahmanPitchingCsvUrl,
+    lahmanPeopleCsvUrl: env.lahmanPeopleCsvUrl,
+    chadwickRegisterCsvUrl: env.chadwickRegisterCsvUrl,
+    fangraphsDepthCsvUrl: env.fangraphsDepthCsvUrl,
+  };
+}
+
+async function runCatalogSync(reason) {
+  const summary = await syncCatalogFromMlbApi(buildSyncOptionsFromEnv());
+  console.log(
+    `MLB sync (${reason}) complete: ${summary.playersSynced} players, ${summary.teamsSynced} teams (${summary.rosterType})`,
+  );
+  if (Array.isArray(summary.externalDataRefresh?.failedSources) && summary.externalDataRefresh.failedSources.length) {
+    console.warn(
+      `External CSV refresh warnings (${reason}): ${summary.externalDataRefresh.failedSources.length} source(s) failed`,
+    );
+  }
+  return summary;
+}
+
 async function start() {
   await connectMongo(env.mongodbUri);
   await seedTeamsCatalog();
@@ -43,24 +78,25 @@ async function start() {
 
   if (env.syncMlbOnStartup) {
     try {
-      const summary = await syncCatalogFromMlbApi({
-        rosterType: env.syncMlbRosterType,
-        seasonsBack: env.syncMlbSeasonsBack,
-        lookbackDays: env.syncMlbLookbackDays,
-        concurrency: env.syncMlbConcurrency,
-        replaceCatalog: env.syncMlbReplaceCatalog,
-        lahmanBattingCsvPath: env.lahmanBattingCsvPath,
-        lahmanPitchingCsvPath: env.lahmanPitchingCsvPath,
-        lahmanPeopleCsvPath: env.lahmanPeopleCsvPath,
-        chadwickRegisterCsvPath: env.chadwickRegisterCsvPath,
-        fangraphsDepthCsvPath: env.fangraphsDepthCsvPath,
-      });
-      console.log(
-        `MLB sync complete: ${summary.playersSynced} players, ${summary.teamsSynced} teams (${summary.rosterType})`,
-      );
+      await runCatalogSync("startup");
     } catch (error) {
       console.error("MLB sync failed, continuing with seeded catalog:", error.message);
     }
+  }
+
+  if (env.syncMlbIntervalMinutes > 0) {
+    const intervalMs = env.syncMlbIntervalMinutes * 60 * 1000;
+    const timer = setInterval(() => {
+      runCatalogSync("scheduled").catch((error) => {
+        console.error("Scheduled MLB sync failed:", error.message);
+      });
+    }, intervalMs);
+
+    if (typeof timer.unref === "function") {
+      timer.unref();
+    }
+
+    console.log(`MLB sync scheduler enabled: every ${env.syncMlbIntervalMinutes} minute(s)`);
   }
 
   app.listen(env.port, () => {

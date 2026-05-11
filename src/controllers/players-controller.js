@@ -257,6 +257,14 @@ function validateMlbSyncBody(body) {
     return "replaceCatalog must be a boolean";
   }
 
+  if (body.refreshExternalData !== undefined && typeof body.refreshExternalData !== "boolean") {
+    return "refreshExternalData must be a boolean";
+  }
+
+  if (body.externalDataCacheDir !== undefined && typeof body.externalDataCacheDir !== "string") {
+    return "externalDataCacheDir must be a string path";
+  }
+
   for (const pathField of [
     "lahmanBattingCsvPath",
     "lahmanPitchingCsvPath",
@@ -266,6 +274,18 @@ function validateMlbSyncBody(body) {
   ]) {
     if (body[pathField] !== undefined && typeof body[pathField] !== "string") {
       return `${pathField} must be a string path`;
+    }
+  }
+
+  for (const urlField of [
+    "lahmanBattingCsvUrl",
+    "lahmanPitchingCsvUrl",
+    "lahmanPeopleCsvUrl",
+    "chadwickRegisterCsvUrl",
+    "fangraphsDepthCsvUrl",
+  ]) {
+    if (body[urlField] !== undefined && typeof body[urlField] !== "string") {
+      return `${urlField} must be a string URL`;
     }
   }
 

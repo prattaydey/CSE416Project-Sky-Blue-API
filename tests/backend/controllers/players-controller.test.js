@@ -201,6 +201,34 @@ describe("controllers: players", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it("rejects non-string CSV URL options for MLB sync", async () => {
+    const req = createMockReq({ body: { lahmanBattingCsvUrl: 123 } });
+    const res = createMockRes();
+    const next = vi.fn();
+
+    await syncMlbCatalog(req, res, next);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.payload).toEqual({
+      error: "lahmanBattingCsvUrl must be a string URL",
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-boolean refreshExternalData for MLB sync", async () => {
+    const req = createMockReq({ body: { refreshExternalData: "yes" } });
+    const res = createMockRes();
+    const next = vi.fn();
+
+    await syncMlbCatalog(req, res, next);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.payload).toEqual({
+      error: "refreshExternalData must be a boolean",
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it("runs MLB catalog sync and returns summary", async () => {
     const syncSpy = vi.spyOn(mlbCatalogSyncService, "syncCatalogFromMlbApi").mockResolvedValue({
       rosterType: "40Man",

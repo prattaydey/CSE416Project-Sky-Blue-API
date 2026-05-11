@@ -9,6 +9,7 @@ const {
 } = require("./mlbStatsApi");
 const { loadLahmanPlayerOverlays } = require("./lahmanOverlayService");
 const { loadFangraphsDepthOverrides } = require("./fangraphsDepthService");
+const { refreshExternalCsvSources } = require("./externalDataRefreshService");
 
 const DEFAULT_ROSTER_TYPE = "40Man";
 const DEFAULT_SEASONS_BACK = 3;
@@ -251,6 +252,10 @@ function normalizeSyncOptions(options = {}) {
     concurrency: Math.max(1, Math.min(asPositiveInt(options.concurrency, DEFAULT_CONCURRENCY), 25)),
     latestSeason: options.latestSeason,
     replaceCatalog: Boolean(options.replaceCatalog),
+    refreshExternalData:
+      options.refreshExternalData === undefined ? true : Boolean(options.refreshExternalData),
+    externalDataCacheDir:
+      typeof options.externalDataCacheDir === "string" ? options.externalDataCacheDir : "",
     lahmanBattingCsvPath: typeof options.lahmanBattingCsvPath === "string" ? options.lahmanBattingCsvPath : "",
     lahmanPitchingCsvPath:
       typeof options.lahmanPitchingCsvPath === "string" ? options.lahmanPitchingCsvPath : "",
@@ -259,6 +264,14 @@ function normalizeSyncOptions(options = {}) {
       typeof options.chadwickRegisterCsvPath === "string" ? options.chadwickRegisterCsvPath : "",
     fangraphsDepthCsvPath:
       typeof options.fangraphsDepthCsvPath === "string" ? options.fangraphsDepthCsvPath : "",
+    lahmanBattingCsvUrl: typeof options.lahmanBattingCsvUrl === "string" ? options.lahmanBattingCsvUrl : "",
+    lahmanPitchingCsvUrl:
+      typeof options.lahmanPitchingCsvUrl === "string" ? options.lahmanPitchingCsvUrl : "",
+    lahmanPeopleCsvUrl: typeof options.lahmanPeopleCsvUrl === "string" ? options.lahmanPeopleCsvUrl : "",
+    chadwickRegisterCsvUrl:
+      typeof options.chadwickRegisterCsvUrl === "string" ? options.chadwickRegisterCsvUrl : "",
+    fangraphsDepthCsvUrl:
+      typeof options.fangraphsDepthCsvUrl === "string" ? options.fangraphsDepthCsvUrl : "",
   };
 }
 
@@ -292,16 +305,66 @@ async function syncCatalogFromMlbApi(options = {}) {
   const config = normalizeSyncOptions(options);
   const now = new Date();
   const seasons = resolveSeasons(config.latestSeason, config.seasonsBack);
-  const lahmanOverlay = loadLahmanPlayerOverlays({
-    seasons,
+  let csvPaths = {
     lahmanBattingCsvPath: config.lahmanBattingCsvPath,
     lahmanPitchingCsvPath: config.lahmanPitchingCsvPath,
     lahmanPeopleCsvPath: config.lahmanPeopleCsvPath,
     chadwickRegisterCsvPath: config.chadwickRegisterCsvPath,
+    fangraphsDepthCsvPath: config.fangraphsDepthCsvPath,
+  };
+  let externalDataRefresh = {
+    attempted: false,
+    refreshedSources: [],
+    failedSources: [],
+    cacheDir: null,
+  };
+
+  if (config.refreshExternalData) {
+    externalDataRefresh.attempted = true;
+    try {
+      const refreshResult = await refreshExternalCsvSources({
+        cacheDir: config.externalDataCacheDir,
+        lahmanBattingCsvPath: config.lahmanBattingCsvPath,
+        lahmanPitchingCsvPath: config.lahmanPitchingCsvPath,
+        lahmanPeopleCsvPath: config.lahmanPeopleCsvPath,
+        chadwickRegisterCsvPath: config.chadwickRegisterCsvPath,
+        fangraphsDepthCsvPath: config.fangraphsDepthCsvPath,
+        lahmanBattingCsvUrl: config.lahmanBattingCsvUrl,
+        lahmanPitchingCsvUrl: config.lahmanPitchingCsvUrl,
+        lahmanPeopleCsvUrl: config.lahmanPeopleCsvUrl,
+        chadwickRegisterCsvUrl: config.chadwickRegisterCsvUrl,
+        fangraphsDepthCsvUrl: config.fangraphsDepthCsvUrl,
+      });
+
+      csvPaths = {
+        ...csvPaths,
+        ...refreshResult.paths,
+      };
+      externalDataRefresh = {
+        attempted: true,
+        refreshedSources: refreshResult.refreshedSources,
+        failedSources: refreshResult.failedSources,
+        cacheDir: refreshResult.cacheDir,
+      };
+    } catch (error) {
+      externalDataRefresh.failedSources.push({
+        source: "external-refresh",
+        url: "",
+        error: error?.message || "Unknown refresh error",
+      });
+    }
+  }
+
+  const lahmanOverlay = loadLahmanPlayerOverlays({
+    seasons,
+    lahmanBattingCsvPath: csvPaths.lahmanBattingCsvPath,
+    lahmanPitchingCsvPath: csvPaths.lahmanPitchingCsvPath,
+    lahmanPeopleCsvPath: csvPaths.lahmanPeopleCsvPath,
+    chadwickRegisterCsvPath: csvPaths.chadwickRegisterCsvPath,
   });
   const fangraphsDepth = loadFangraphsDepthOverrides({
-    fangraphsDepthCsvPath: config.fangraphsDepthCsvPath,
-    chadwickRegisterCsvPath: config.chadwickRegisterCsvPath,
+    fangraphsDepthCsvPath: csvPaths.fangraphsDepthCsvPath,
+    chadwickRegisterCsvPath: csvPaths.chadwickRegisterCsvPath,
   });
 
   const teams = await fetchAllTeams();
@@ -501,6 +564,7 @@ async function syncCatalogFromMlbApi(options = {}) {
     lahmanPlayersApplied: lahmanOverlay.playerOverlays || 0,
     fangraphsRowsProcessed: fangraphsDepth.rowsProcessed,
     fangraphsDepthApplied: fangraphsDepth.depthOverrides || 0,
+    externalDataRefresh,
     replacedCatalog: config.replaceCatalog,
     fetchedAt: now.toISOString(),
   };

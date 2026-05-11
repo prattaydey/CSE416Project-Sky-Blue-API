@@ -11,17 +11,25 @@ Copy `.env.example` to `.env` and fill in:
 - `APP_CLIENT_KEY`
 - `JWT_SECRET`
 - `CORS_ORIGIN` (optional, default `http://localhost:5173`)
-- `SYNC_MLB_ON_STARTUP` (optional, `true`/`false`, default `false`)
+- `SYNC_MLB_ON_STARTUP` (optional, `true`/`false`, default `true`)
 - `SYNC_MLB_ROSTER_TYPE` (optional, default `40Man`)
 - `SYNC_MLB_SEASONS_BACK` (optional, default `3`)
 - `SYNC_MLB_LOOKBACK_DAYS` (optional, default `30`)
 - `SYNC_MLB_CONCURRENCY` (optional, default `8`)
+- `SYNC_MLB_INTERVAL_MINUTES` (optional, default `0`, disabled when `0`)
 - `SYNC_MLB_REPLACE_CATALOG` (optional, `true`/`false`, default `false`)
+- `EXTERNAL_DATA_REFRESH_ON_SYNC` (optional, `true`/`false`, default `true`)
+- `EXTERNAL_DATA_CACHE_DIR` (optional, default `.cache/external-data`)
 - `LAHMAN_BATTING_CSV_PATH` (optional)
 - `LAHMAN_PITCHING_CSV_PATH` (optional)
 - `LAHMAN_PEOPLE_CSV_PATH` (optional)
 - `CHADWICK_REGISTER_CSV_PATH` (optional)
 - `FANGRAPHS_DEPTH_CSV_PATH` (optional)
+- `LAHMAN_BATTING_CSV_URL` (optional)
+- `LAHMAN_PITCHING_CSV_URL` (optional)
+- `LAHMAN_PEOPLE_CSV_URL` (optional)
+- `CHADWICK_REGISTER_CSV_URL` (optional)
+- `FANGRAPHS_DEPTH_CSV_URL` (optional)
 
 ## Run locally
 
@@ -88,11 +96,18 @@ Optional request body:
 - `concurrency` (positive integer)
 - `latestSeason` (year)
 - `replaceCatalog` (boolean, if true deletes players not in latest sync)
+- `refreshExternalData` (optional boolean, default `true`)
+- `externalDataCacheDir` (optional cache folder for downloaded CSV overlays)
 - `lahmanBattingCsvPath` (optional file path)
 - `lahmanPitchingCsvPath` (optional file path)
 - `lahmanPeopleCsvPath` (optional file path)
 - `chadwickRegisterCsvPath` (optional file path)
 - `fangraphsDepthCsvPath` (optional file path)
+- `lahmanBattingCsvUrl` (optional URL, downloaded at sync time)
+- `lahmanPitchingCsvUrl` (optional URL, downloaded at sync time)
+- `lahmanPeopleCsvUrl` (optional URL, downloaded at sync time)
+- `chadwickRegisterCsvUrl` (optional URL, downloaded at sync time)
+- `fangraphsDepthCsvUrl` (optional URL, downloaded at sync time)
 
 ```bash
 curl -X POST -H "Authorization: Bearer $APP_CLIENT_KEY" \
@@ -108,10 +123,11 @@ curl -X POST -H "Authorization: Bearer $APP_CLIENT_KEY" \
 
 Startup behavior:
 
-- Default: boot from seeded catalog (fast, offline-safe).
-- If `SYNC_MLB_ON_STARTUP=true`: boot seeds first, then immediately overlay with live MLB sync.
-- If Lahman paths + Chadwick path are configured: Lahman historical stats are overlaid onto MLB-synced players.
-- If FanGraphs depth CSV + Chadwick path are configured: FanGraphs depth rank overrides are applied.
+- Default: boot seeds first, then immediately overlay with live MLB sync.
+- If `SYNC_MLB_ON_STARTUP=false`: boot with seeded catalog only.
+- If `SYNC_MLB_INTERVAL_MINUTES > 0`: run recurring background MLB sync on that interval.
+- If Lahman/FanGraphs URLs are configured (or local CSV paths are configured): overlays are applied during sync.
+- URL-configured overlay files are downloaded to `EXTERNAL_DATA_CACHE_DIR` before each sync.
 
 ### Player Valuation
 
