@@ -1,13 +1,19 @@
 const seedPlayers = require("../../../src/data/seedPlayers");
 const Player = require("../../../src/models/player.model");
+const Team = require("../../../src/models/team.model");
 const User = require("../../../src/models/user.model");
+const mongo = require("../../../src/db/mongo");
 const mlbCatalogSyncService = require("../../../src/services/mlbCatalogSyncService");
+const seedPlayersCatalogService = require("../../../src/services/seedPlayersCatalog");
+const seedTeamsCatalogService = require("../../../src/services/seedTeamsCatalog");
 const { createApp } = require("../../../src/server");
 
 const originalFind = Player.find;
 const originalFindOne = Player.findOne;
 const originalCreate = Player.create;
+const originalTeamBulkWrite = Team.bulkWrite;
 const originalUserFindOne = User.findOne;
+const originalVercel = process.env.VERCEL;
 
 async function request(app, {
   method = "GET",
@@ -66,7 +72,9 @@ describe("system: DraftKit API", () => {
     Player.find = originalFind;
     Player.findOne = originalFindOne;
     Player.create = originalCreate;
+    Team.bulkWrite = originalTeamBulkWrite;
     User.findOne = originalUserFindOne;
+    process.env.VERCEL = originalVercel;
     vi.restoreAllMocks();
   });
 
@@ -247,5 +255,24 @@ describe("system: DraftKit API", () => {
     expect(response.status).toBe(400);
     expect(response.payload.error).toContain("rosterType");
     expect(syncSpy).not.toHaveBeenCalled();
+  });
+
+  it("bootstraps Mongo and seed catalogs before handling Vercel serverless requests", async () => {
+    process.env.VERCEL = "1";
+    const connectSpy = vi.spyOn(mongo, "connectMongo").mockResolvedValue();
+    vi.spyOn(seedPlayersCatalogService, "seedPlayersCatalog").mockResolvedValue();
+    vi.spyOn(seedTeamsCatalogService, "seedTeamsCatalog").mockResolvedValue();
+    mockPlayerFind(seedPlayers.slice(0, 1));
+
+    const app = createApp();
+    const response = await request(app, {
+      path: "/api/players",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.payload).toHaveLength(1);
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+    expect(seedPlayersCatalogService.seedPlayersCatalog).toHaveBeenCalledTimes(1);
+    expect(seedTeamsCatalogService.seedTeamsCatalog).toHaveBeenCalledTimes(1);
   });
 });

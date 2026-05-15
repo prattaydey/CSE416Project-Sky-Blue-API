@@ -1,15 +1,28 @@
 const express = require("express");
 const cors = require("cors");
 const env = require("./config/env");
-const { connectMongo } = require("./db/mongo");
+const mongo = require("./db/mongo");
 const { requireAppClientKey } = require("./middleware/auth");
 const playersRoutes = require("./routes/players-routes");
 const playerRoutes = require("./routes/player-routes");
 const teamsRoutes = require("./routes/teams-routes");
 const userRoutes = require("./routes/user-routes");
-const { seedPlayersCatalog } = require("./services/seedPlayersCatalog");
-const { seedTeamsCatalog } = require("./services/seedTeamsCatalog");
+const seedPlayersCatalogService = require("./services/seedPlayersCatalog");
+const seedTeamsCatalogService = require("./services/seedTeamsCatalog");
 const { syncCatalogFromMlbApi } = require("./services/mlbCatalogSyncService");
+
+let serverlessBootstrapPromise = null;
+
+async function ensureServerlessBootstrap() {
+  if (!serverlessBootstrapPromise) {
+    serverlessBootstrapPromise = (async () => {
+      await mongo.connectMongo(env.mongodbUri);
+      await seedTeamsCatalogService.seedTeamsCatalog();
+      await seedPlayersCatalogService.seedPlayersCatalog();
+    })();
+  }
+  return serverlessBootstrapPromise;
+}
 
 function createApp() {
   const app = express();
@@ -26,6 +39,18 @@ function createApp() {
 
   app.use(cors(corsConfig));
   app.use(express.json());
+  app.use(async (_req, _res, next) => {
+    if (!process.env.VERCEL) {
+      return next();
+    }
+
+    try {
+      await ensureServerlessBootstrap();
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  });
 
   app.use("/api/users", userRoutes);
   app.use("/api/players", requireAppClientKey, playersRoutes);
@@ -81,9 +106,9 @@ async function runCatalogSync(reason) {
 async function start() {
   const app = createApp();
 
-  await connectMongo(env.mongodbUri);
-  await seedTeamsCatalog();
-  await seedPlayersCatalog();
+  await mongo.connectMongo(env.mongodbUri);
+  await seedTeamsCatalogService.seedTeamsCatalog();
+  await seedPlayersCatalogService.seedPlayersCatalog();
 
   app.listen(env.port, () => {
     console.log(`DraftKit API listening on port ${env.port}`);
@@ -122,6 +147,7 @@ if (require.main === module) {
 module.exports = {
   createApp,
   buildSyncOptionsFromEnv,
+  ensureServerlessBootstrap,
   runCatalogSync,
   start,
 };
