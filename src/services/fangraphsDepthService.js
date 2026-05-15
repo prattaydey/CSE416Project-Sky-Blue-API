@@ -21,7 +21,8 @@ function pickFirst(row, candidates) {
 }
 
 function normalizePosition(position) {
-  return String(position || "").trim().toUpperCase();
+  const normalized = String(position || "").trim().toUpperCase();
+  return normalized === "LF" || normalized === "CF" || normalized === "RF" ? "OF" : normalized;
 }
 
 function canonicalTeamAbbreviation(team) {

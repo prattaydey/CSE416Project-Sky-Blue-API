@@ -464,4 +464,50 @@ describe("integration: players routes compatibility", () => {
     expect(getResponse.payload.team).toBe("NYY");
     expect(getResponse.payload.position).toEqual(["SP"]);
   });
+
+  it("normalizes LF, CF, and RF custom player positions to OF", async () => {
+    let storedPlayer = null;
+    const fetchedAt = new Date("2026-05-14T14:00:00.000Z");
+
+    Player.findOne = vi.fn((query) => {
+      const lean = vi.fn().mockResolvedValue(
+        storedPlayer && query?.playerId === storedPlayer.playerId ? storedPlayer : null,
+      );
+      return { lean };
+    });
+
+    Player.create = vi.fn(async (payload) => {
+      storedPlayer = {
+        ...payload,
+        fetchedAt,
+        toObject() {
+          return {
+            ...this,
+            toObject: undefined,
+          };
+        },
+      };
+      return storedPlayer;
+    });
+
+    const app = createApp();
+    const response = await makeRequest(app, {
+      method: "POST",
+      path: "/api/players",
+      body: {
+        playerId: 991235,
+        name: "Outfield Player",
+        team: "LAD",
+        league: "NL",
+        position: ["lf", "CF", "RF", "OF"],
+        stats: { BA: 0.281, HR: 18, RBI: 74, SB: 11 },
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.payload.position).toEqual(["OF"]);
+    expect(Player.create).toHaveBeenCalledWith(expect.objectContaining({
+      position: ["OF"],
+    }));
+  });
 });

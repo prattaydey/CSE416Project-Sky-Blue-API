@@ -11,30 +11,34 @@ const { seedPlayersCatalog } = require("./services/seedPlayersCatalog");
 const { seedTeamsCatalog } = require("./services/seedTeamsCatalog");
 const { syncCatalogFromMlbApi } = require("./services/mlbCatalogSyncService");
 
-const app = express();
-const allowedOrigins = env.corsOrigin
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+function createApp() {
+  const app = express();
+  const allowedOrigins = env.corsOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
-const corsConfig = {
-  origin: allowedOrigins.includes("*") ? "*" : allowedOrigins,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
+  const corsConfig = {
+    origin: allowedOrigins.includes("*") ? "*" : allowedOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  };
 
-app.use(cors(corsConfig));
-app.use(express.json());
+  app.use(cors(corsConfig));
+  app.use(express.json());
 
-app.use("/api/users", userRoutes);
-app.use("/api/players", requireAppClientKey, playersRoutes);
-app.use("/api/player", requireAppClientKey, playerRoutes);
-app.use("/api/teams", requireAppClientKey, teamsRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/players", requireAppClientKey, playersRoutes);
+  app.use("/api/player", requireAppClientKey, playerRoutes);
+  app.use("/api/teams", requireAppClientKey, teamsRoutes);
 
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(500).json({ error: "Internal server error" });
-});
+  app.use((err, _req, res, _next) => {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  });
+
+  return app;
+}
 
 function buildSyncOptionsFromEnv() {
   return {
@@ -50,10 +54,13 @@ function buildSyncOptionsFromEnv() {
     lahmanPeopleCsvPath: env.lahmanPeopleCsvPath,
     chadwickRegisterCsvPath: env.chadwickRegisterCsvPath,
     fangraphsDepthCsvPath: env.fangraphsDepthCsvPath,
+    lahmanZipPath: env.lahmanZipPath,
     lahmanBattingCsvUrl: env.lahmanBattingCsvUrl,
     lahmanPitchingCsvUrl: env.lahmanPitchingCsvUrl,
     lahmanPeopleCsvUrl: env.lahmanPeopleCsvUrl,
+    lahmanZipUrl: env.lahmanZipUrl,
     chadwickRegisterCsvUrl: env.chadwickRegisterCsvUrl,
+    chadwickRegisterCsvUrls: env.chadwickRegisterCsvUrls,
     fangraphsDepthCsvUrl: env.fangraphsDepthCsvUrl,
   };
 }
@@ -72,6 +79,8 @@ async function runCatalogSync(reason) {
 }
 
 async function start() {
+  const app = createApp();
+
   await connectMongo(env.mongodbUri);
   await seedTeamsCatalog();
   await seedPlayersCatalog();
@@ -103,7 +112,16 @@ async function start() {
 
 }
 
-start().catch((error) => {
-  console.error("Failed to start server:", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch((error) => {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  createApp,
+  buildSyncOptionsFromEnv,
+  runCatalogSync,
+  start,
+};

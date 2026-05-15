@@ -32,9 +32,12 @@ module.exports = {
   lahmanPeopleCsvPath: process.env.LAHMAN_PEOPLE_CSV_PATH || "",
   chadwickRegisterCsvPath: process.env.CHADWICK_REGISTER_CSV_PATH || "",
   fangraphsDepthCsvPath: process.env.FANGRAPHS_DEPTH_CSV_PATH || "",
+  lahmanZipPath: process.env.LAHMAN_ZIP_PATH || "",
   lahmanBattingCsvUrl: process.env.LAHMAN_BATTING_CSV_URL || "",
   lahmanPitchingCsvUrl: process.env.LAHMAN_PITCHING_CSV_URL || "",
   lahmanPeopleCsvUrl: process.env.LAHMAN_PEOPLE_CSV_URL || "",
+  lahmanZipUrl: process.env.LAHMAN_ZIP_URL || "",
   chadwickRegisterCsvUrl: process.env.CHADWICK_REGISTER_CSV_URL || "",
+  chadwickRegisterCsvUrls: process.env.CHADWICK_REGISTER_CSV_URLS || "",
   fangraphsDepthCsvUrl: process.env.FANGRAPHS_DEPTH_CSV_URL || "",
 };

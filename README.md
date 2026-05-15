@@ -25,10 +25,13 @@ Copy `.env.example` to `.env` and fill in:
 - `LAHMAN_PEOPLE_CSV_PATH` (optional)
 - `CHADWICK_REGISTER_CSV_PATH` (optional)
 - `FANGRAPHS_DEPTH_CSV_PATH` (optional)
+- `LAHMAN_ZIP_PATH` (optional, local comma-delimited Lahman archive containing `Batting.csv`, `Pitching.csv`, and `People.csv`)
 - `LAHMAN_BATTING_CSV_URL` (optional)
 - `LAHMAN_PITCHING_CSV_URL` (optional)
 - `LAHMAN_PEOPLE_CSV_URL` (optional)
+- `LAHMAN_ZIP_URL` (optional, comma-delimited Lahman archive containing `Batting.csv`, `Pitching.csv`, and `People.csv`)
 - `CHADWICK_REGISTER_CSV_URL` (optional)
+- `CHADWICK_REGISTER_CSV_URLS` (optional, comma-separated split Chadwick register CSV URLs)
 - `FANGRAPHS_DEPTH_CSV_URL` (optional)
 
 ## Run locally
@@ -128,6 +131,8 @@ Startup behavior:
 - If `SYNC_MLB_INTERVAL_MINUTES > 0`: run recurring background MLB sync on that interval.
 - If Lahman/FanGraphs URLs are configured (or local CSV paths are configured): overlays are applied during sync.
 - URL-configured overlay files are downloaded to `EXTERNAL_DATA_CACHE_DIR` before each sync.
+- `LAHMAN_ZIP_PATH` or `LAHMAN_ZIP_URL` can point at the SABR comma-delimited Lahman zip; the API extracts `Batting.csv`, `Pitching.csv`, and `People.csv` automatically.
+- If no `CHADWICK_REGISTER_CSV_URL` or `CHADWICK_REGISTER_CSV_URLS` is provided, the API downloads and combines Chadwick's public `people-0.csv` through `people-f.csv` register files automatically.
 
 ### Player Valuation
 

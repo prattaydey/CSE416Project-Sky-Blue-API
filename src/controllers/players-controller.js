@@ -66,14 +66,21 @@ const PLAYER_STATUS_VALUES = new Set([
   "free_agent",
 ]);
 
+function normalizePosition(position) {
+  const normalized = String(position || "").trim().toUpperCase();
+  return normalized === "LF" || normalized === "CF" || normalized === "RF" ? "OF" : normalized;
+}
+
 function normalizePositions(positionInput) {
   if (Array.isArray(positionInput)) {
-    return positionInput
-      .map((position) => String(position || "").trim().toUpperCase())
-      .filter(Boolean);
+    return Array.from(new Set(
+      positionInput
+        .map(normalizePosition)
+        .filter(Boolean),
+    ));
   }
 
-  const single = String(positionInput || "").trim().toUpperCase();
+  const single = normalizePosition(positionInput);
   return single ? [single] : [];
 }
 
@@ -277,6 +284,7 @@ function validateMlbSyncBody(body) {
     "lahmanBattingCsvPath",
     "lahmanPitchingCsvPath",
     "lahmanPeopleCsvPath",
+    "lahmanZipPath",
     "chadwickRegisterCsvPath",
     "fangraphsDepthCsvPath",
   ]) {
@@ -289,7 +297,9 @@ function validateMlbSyncBody(body) {
     "lahmanBattingCsvUrl",
     "lahmanPitchingCsvUrl",
     "lahmanPeopleCsvUrl",
+    "lahmanZipUrl",
     "chadwickRegisterCsvUrl",
+    "chadwickRegisterCsvUrls",
     "fangraphsDepthCsvUrl",
   ]) {
     if (body[urlField] !== undefined && typeof body[urlField] !== "string") {

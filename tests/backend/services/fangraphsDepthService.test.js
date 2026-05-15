@@ -20,7 +20,7 @@ describe("services: fangraphsDepthService", () => {
     const depthCsv = [
       "playerid,Team,Pos,PA,IP",
       "10155,LAA,CF,650,0",
-      "20222,LAA,CF,400,0",
+      "20222,LAA,LF,400,0",
       "10954,NYM,SP,0,180",
     ].join("\n");
     const chadwickCsv = [

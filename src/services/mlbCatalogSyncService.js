@@ -29,7 +29,8 @@ function asPositiveInt(value, fallback) {
 }
 
 function normalizePosition(position) {
-  return String(position || "").trim().toUpperCase();
+  const normalized = String(position || "").trim().toUpperCase();
+  return normalized === "LF" || normalized === "CF" || normalized === "RF" ? "OF" : normalized;
 }
 
 function isPitchingPosition(position) {
@@ -264,12 +265,16 @@ function normalizeSyncOptions(options = {}) {
       typeof options.chadwickRegisterCsvPath === "string" ? options.chadwickRegisterCsvPath : "",
     fangraphsDepthCsvPath:
       typeof options.fangraphsDepthCsvPath === "string" ? options.fangraphsDepthCsvPath : "",
+    lahmanZipPath: typeof options.lahmanZipPath === "string" ? options.lahmanZipPath : "",
     lahmanBattingCsvUrl: typeof options.lahmanBattingCsvUrl === "string" ? options.lahmanBattingCsvUrl : "",
     lahmanPitchingCsvUrl:
       typeof options.lahmanPitchingCsvUrl === "string" ? options.lahmanPitchingCsvUrl : "",
     lahmanPeopleCsvUrl: typeof options.lahmanPeopleCsvUrl === "string" ? options.lahmanPeopleCsvUrl : "",
+    lahmanZipUrl: typeof options.lahmanZipUrl === "string" ? options.lahmanZipUrl : "",
     chadwickRegisterCsvUrl:
       typeof options.chadwickRegisterCsvUrl === "string" ? options.chadwickRegisterCsvUrl : "",
+    chadwickRegisterCsvUrls:
+      typeof options.chadwickRegisterCsvUrls === "string" ? options.chadwickRegisterCsvUrls : "",
     fangraphsDepthCsvUrl:
       typeof options.fangraphsDepthCsvUrl === "string" ? options.fangraphsDepthCsvUrl : "",
   };
@@ -329,10 +334,13 @@ async function syncCatalogFromMlbApi(options = {}) {
         lahmanPeopleCsvPath: config.lahmanPeopleCsvPath,
         chadwickRegisterCsvPath: config.chadwickRegisterCsvPath,
         fangraphsDepthCsvPath: config.fangraphsDepthCsvPath,
+        lahmanZipPath: config.lahmanZipPath,
         lahmanBattingCsvUrl: config.lahmanBattingCsvUrl,
         lahmanPitchingCsvUrl: config.lahmanPitchingCsvUrl,
         lahmanPeopleCsvUrl: config.lahmanPeopleCsvUrl,
+        lahmanZipUrl: config.lahmanZipUrl,
         chadwickRegisterCsvUrl: config.chadwickRegisterCsvUrl,
+        chadwickRegisterCsvUrls: config.chadwickRegisterCsvUrls,
         fangraphsDepthCsvUrl: config.fangraphsDepthCsvUrl,
       });
 
