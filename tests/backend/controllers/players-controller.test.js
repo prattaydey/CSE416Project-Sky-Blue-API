@@ -279,7 +279,17 @@ describe("controllers: players", () => {
     expect(res.statusCode).toBe(200);
     expect(res.payload.ok).toBe(true);
     expect(res.payload.playersSynced).toBe(1200);
-    expect(syncSpy).toHaveBeenCalledWith({ rosterType: "40Man", seasonsBack: 3, lookbackDays: 30 });
+    expect(syncSpy).toHaveBeenCalledWith(expect.objectContaining({
+      rosterType: "40Man",
+      seasonsBack: 3,
+      lookbackDays: 30,
+      concurrency: 8,
+      refreshExternalData: true,
+      externalDataCacheDir: "",
+      lahmanZipPath: "",
+      lahmanZipUrl: "",
+      chadwickRegisterCsvUrls: "",
+    }));
     expect(next).not.toHaveBeenCalled();
   });
 });

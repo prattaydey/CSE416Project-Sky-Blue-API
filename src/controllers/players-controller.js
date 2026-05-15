@@ -5,6 +5,7 @@ const {
   ROTO_ALLOWED_CATEGORIES,
 } = require("../services/valuationService");
 const mlbCatalogSyncService = require("../services/mlbCatalogSyncService");
+const env = require("../config/env");
 
 function safeIsoDate(value) {
   const date = new Date(value);
@@ -692,7 +693,29 @@ async function syncMlbCatalog(req, res, next) {
       return res.status(400).json({ error: validationError });
     }
 
-    const payload = req.body && typeof req.body === "object" ? req.body : {};
+    const payload = {
+      rosterType: env.syncMlbRosterType,
+      seasonsBack: env.syncMlbSeasonsBack,
+      lookbackDays: env.syncMlbLookbackDays,
+      concurrency: env.syncMlbConcurrency,
+      replaceCatalog: env.syncMlbReplaceCatalog,
+      refreshExternalData: env.externalDataRefreshOnSync,
+      externalDataCacheDir: env.externalDataCacheDir,
+      lahmanBattingCsvPath: env.lahmanBattingCsvPath,
+      lahmanPitchingCsvPath: env.lahmanPitchingCsvPath,
+      lahmanPeopleCsvPath: env.lahmanPeopleCsvPath,
+      chadwickRegisterCsvPath: env.chadwickRegisterCsvPath,
+      fangraphsDepthCsvPath: env.fangraphsDepthCsvPath,
+      lahmanZipPath: env.lahmanZipPath,
+      lahmanBattingCsvUrl: env.lahmanBattingCsvUrl,
+      lahmanPitchingCsvUrl: env.lahmanPitchingCsvUrl,
+      lahmanPeopleCsvUrl: env.lahmanPeopleCsvUrl,
+      lahmanZipUrl: env.lahmanZipUrl,
+      chadwickRegisterCsvUrl: env.chadwickRegisterCsvUrl,
+      chadwickRegisterCsvUrls: env.chadwickRegisterCsvUrls,
+      fangraphsDepthCsvUrl: env.fangraphsDepthCsvUrl,
+      ...(req.body && typeof req.body === "object" ? req.body : {}),
+    };
     const result = await mlbCatalogSyncService.syncCatalogFromMlbApi(payload);
 
     return res.json({
