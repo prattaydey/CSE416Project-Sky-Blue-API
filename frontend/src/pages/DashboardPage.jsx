@@ -149,16 +149,26 @@ export default function DashboardPage() {
 
         <section className="dash-card docs-card">
           <h2>Quick Reference</h2>
+          <p className="key-hint docs-auth-hint">
+            Player and team routes require <code>Authorization: Bearer &lt;your-api-key&gt;</code>.
+          </p>
           <div className="endpoint-list">
             {[
-              { method: "GET", path: "/api/players", desc: "All players. Optional ?league=AL|NL|MLB" },
-              { method: "GET", path: "/api/players/:id", desc: "Single player by MLB ID" },
-              { method: "POST", path: "/api/players/value", desc: "Valuate a list of players" },
-              { method: "POST", path: "/api/players/value/all", desc: "Valuate all available players" },
-              { method: "GET", path: "/api/teams", desc: "All MLB teams. Optional ?league=AL|NL" },
-              { method: "GET", path: "/api/teams/:id", desc: "Single team by MLB ID" },
+              { method: "GET", path: "/api/players", desc: "List players. Optional ?league=AL|NL|MLB" },
+              { method: "POST", path: "/api/players", desc: "Create a custom player (playerId, name, team, league, position, stats)" },
+              { method: "GET", path: "/api/players/:playerId", desc: "Single player details by MLB integer ID" },
+              {
+                method: "GET",
+                path: "/api/players/:playerId/valuation",
+                desc: "Auction value for one player. ?budget= & ?teams= required; optional ?drafted= & ?rosterSlots= (JSON)",
+              },
+              { method: "POST", path: "/api/players/value", desc: "Valuate multiple players (body: leagueSettings, draftState, playerIds[])" },
+              { method: "POST", path: "/api/players/value/all", desc: "Valuate all undrafted players (body: leagueSettings, draftState)" },
+              { method: "POST", path: "/api/player/value", desc: "Valuate one player (body: leagueSettings, draftState, playerId)" },
+              { method: "GET", path: "/api/teams", desc: "List MLB teams. Optional ?league=AL|NL" },
+              { method: "GET", path: "/api/teams/:teamId", desc: "Single team by MLB team ID" },
             ].map((ep) => (
-              <div key={ep.path} className="endpoint-row">
+              <div key={`${ep.method}-${ep.path}`} className="endpoint-row">
                 <span className={`method-badge method-${ep.method.toLowerCase()}`}>{ep.method}</span>
                 <code className="endpoint-path">{ep.path}</code>
                 <span className="endpoint-desc">{ep.desc}</span>

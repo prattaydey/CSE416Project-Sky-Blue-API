@@ -218,3 +218,7 @@
 .endpoint-desc {
   color: var(--text-muted);
 }
+
+.docs-auth-hint {
+  margin: 0 0 14px;
+}
